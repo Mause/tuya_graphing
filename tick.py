@@ -71,6 +71,20 @@ def get_openapi():
     return openapi
 
 
+def get_logs(
+    openapi: TuyaOpenAPI, device_id: str, codes: List[str]
+) -> Response[LogResponse]:
+    res = openapi.get(
+        "/v1.0/iot-03/devices/{}/report-logs".format(device_id),
+        params={
+            "codes": ",".join(codes),
+            "start_time": to_api(date.today()),
+            "end_time": to_api(datetime.now()),
+        },
+    )
+    return Response[LogResponse].parse_obj(res)
+
+
 def main():
     devices = get_devices()
     openapi = get_openapi()
@@ -81,15 +95,9 @@ def main():
         if not device.status:
             continue
 
-        res = openapi.get(
-            "/v1.0/iot-03/devices/{}/report-logs".format(device.id),
-            params={
-                "codes": ",".join(status.code for status in device.status),
-                "start_time": to_api(date.today()),
-                "end_time": to_api(datetime.now()),
-            },
-        )
-        res = Response[LogResponse].parse_obj(res).result.list
+        res = get_logs(
+            openapi, device.id, [status.code for status in device.status]
+        ).result.list
 
         data[device.name] = res
 
