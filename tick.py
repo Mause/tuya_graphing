@@ -2,12 +2,15 @@ import json
 from datetime import date, datetime
 from typing import Any, Generic, List, Optional, TypeVar
 
+import pandas as pd
 import plotly.express as px
 import tinytuya
 from pydantic import BaseModel
 from pydantic.generics import GenericModel
+from pytz import timezone
 from tuya_connector import TuyaOpenAPI
 
+PERTH = timezone("Australia/Perth")
 T = TypeVar("T")
 
 
@@ -101,21 +104,29 @@ def main():
 
         data[device.name] = res
 
+        y = {}
         for status in device.status:
             if status.code in {"switch_1", "countdown_1", "switch"}:
                 continue
             points = [point for point in res if point.code == status.code]
             if not points:
                 continue
-            y = [int(point.value) for point in points]
-            x = [point.event_time for point in points]
-            print(status.code, y)
+
+            values = [point.value for point in points]
+            if any(v == "true" or v == "false" for v in values):
+                values = [v == "true" for v in values]
+            else:
+                values = [int(v) for v in values]
+
+            y[status.code] = values
+            index = [point.event_time.astimezone(PERTH) for point in points]
+
+        if y:
             fig = px.line(
-                y=y,
-                x=x,
+                pd.DataFrame(y, index=index),
+                y=[status.code for status in device.status],
                 template="seaborn",
-                title=device.name + " - " + status.code,
-                y_label=status.code,
+                title=device.name,
             )
             fig.show()
 
