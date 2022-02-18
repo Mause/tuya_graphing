@@ -133,12 +133,15 @@ def main():
         data[device.name] = res
 
         y = {}
+        index = None
+        labels = []
         for status in device.status:
             if status.code in {"switch_1", "countdown_1", "switch"}:
                 continue
             points = [point for point in res if point.code == status.code]
             if not points:
                 continue
+            labels.append(status.code)
 
             values = [point.value for point in points]
             if any(v == "true" or v == "false" for v in values):
@@ -155,7 +158,7 @@ def main():
         if y:
             fig = px.line(
                 pd.DataFrame(y, index=index),
-                y=[status.code for status in device.status],
+                y=labels,
                 template="seaborn",
                 title=device.name,
             )
