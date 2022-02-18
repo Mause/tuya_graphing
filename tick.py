@@ -1,6 +1,6 @@
 import json
-from datetime import date, datetime
-from typing import Any, Generic, List, Optional, TypeVar
+from datetime import date, datetime, timedelta
+from typing import Any, Generator, Generic, List, Optional, TypeVar
 
 import pandas as pd
 import plotly.express as px
@@ -74,18 +74,41 @@ def get_openapi():
     return openapi
 
 
-def get_logs(
-    openapi: TuyaOpenAPI, device_id: str, codes: List[str]
-) -> Response[LogResponse]:
+def _get_logs(
+    openapi: TuyaOpenAPI,
+    device_id: str,
+    codes: List[str],
+    start_time: datetime | date,
+    end_time: datetime | date,
+    last_row_key: str = None,
+) -> Generator[Event, None, None]:
+    params = {
+        "codes": ",".join(codes),
+        "start_time": to_api(start_time),
+        "end_time": to_api(end_time),
+    }
+    if last_row_key:
+        params["last_row_key"] = last_row_key
     res = openapi.get(
         "/v1.0/iot-03/devices/{}/report-logs".format(device_id),
-        params={
-            "codes": ",".join(codes),
-            "start_time": to_api(date.today()),
-            "end_time": to_api(datetime.now()),
-        },
+        params,
     )
-    return Response[LogResponse].parse_obj(res)
+    assert res["success"], res["msg"]
+    res = Response[LogResponse].parse_obj(res)
+    yield from res.result.list
+    if res.result.has_more:
+        yield from _get_logs(
+            openapi,
+            device_id,
+            codes,
+            start_time,
+            end_time,
+            last_row_key=res.result.last_row_key,
+        )
+
+
+def get_logs(*args):
+    return list(_get_logs(*args))
 
 
 def main():
@@ -99,8 +122,12 @@ def main():
             continue
 
         res = get_logs(
-            openapi, device.id, [status.code for status in device.status]
-        ).result.list
+            openapi,
+            device.id,
+            [status.code for status in device.status],
+            date.today() - timedelta(weeks=1),
+            datetime.now(),
+        )
 
         data[device.name] = res
 
