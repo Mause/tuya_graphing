@@ -7,6 +7,7 @@ import plotly.express as px
 import tinytuya
 from pydantic import BaseModel
 from pydantic.generics import GenericModel
+from pytemperature import f2c
 from pytz import timezone
 from tuya_connector import TuyaOpenAPI
 
@@ -143,7 +144,10 @@ def main():
             if any(v == "true" or v == "false" for v in values):
                 values = [v == "true" for v in values]
             else:
-                values = [int(v) for v in values]
+                values = [float(v) for v in values]
+
+            if status.code == "va_temperature":
+                values = [f2c(v) for v in values]
 
             y[status.code] = values
             index = [point.event_time.astimezone(PERTH) for point in points]
