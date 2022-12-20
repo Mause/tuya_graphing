@@ -58,7 +58,11 @@ class LogResponse(BaseModel):
     list: List[Event]
 
 
-d = tinytuya.Cloud(apiKey=os.environ['TUYA_API_KEY'], apiSecret=os.environ['TUYA_API_SECRET'])
+d = tinytuya.Cloud(
+  apiRegion='au',
+  apiKey=os.environ['TUYA_API_KEY'],
+  apiSecret=os.environ['TUYA_API_SECRET']
+)
 
 
 def get_devices():
