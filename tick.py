@@ -1,3 +1,4 @@
+import os
 import json
 from datetime import date, datetime, timedelta
 from typing import Any, Generator, Generic, List, Optional, TypeVar
@@ -57,7 +58,7 @@ class LogResponse(BaseModel):
     list: List[Event]
 
 
-d = tinytuya.Cloud()
+d = tinytuya.Cloud(apiKey=os.environ['TUYA_API_KEY'], apiSecret=os.environ['TUYA_API_SECRET'])
 
 
 def get_devices():
