@@ -3,6 +3,7 @@ name = "tuya_graphing"
 version = "0.1.0"
 description = ""
 authors = ["Elliana <me@mause.me>"]
+package-mode = false
 
 [tool.isort]
 profile = "black"
